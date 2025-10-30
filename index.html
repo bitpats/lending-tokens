@@ -197,9 +197,103 @@
       .payment-method input[type="radio"]:checked + .payment-label {
         border-color: #b4e95e;
       }
+      /* Loading States */
+      .loader {
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-top: 3px solid #b4e95e;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        flex-direction: column;
+      }
+      .loading-overlay.active {
+        display: flex;
+      }
+      .loading-text {
+        margin-top: 16px;
+        font-size: 16px;
+        color: #fff;
+        text-align: center;
+      }
+      .upload-box {
+        position: relative;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .upload-box:hover {
+        opacity: 0.8;
+      }
+      .upload-box.uploaded {
+        border: 2px solid #b4e95e;
+      }
+      .upload-box.uploaded::after {
+        content: "✓";
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: #b4e95e;
+        color: #000;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: bold;
+      }
+      .uploaded-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 16px;
+      }
+      .bank-option {
+        transition: all 0.2s;
+      }
+      .bank-option:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: #b4e95e;
+      }
+      .bank-option input[type="radio"]:checked ~ div,
+      .bank-option:has(input[type="radio"]:checked) {
+        border-color: #b4e95e;
+        border-width: 2px;
+      }
+      .header.hidden {
+        display: none;
+      }
     </style>
   </head>
   <body>
+    <!-- Global Loading Overlay -->
+    <div class="loading-overlay" id="global-loader">
+      <div class="loader"></div>
+      <div class="loading-text" id="loading-text">Processing...</div>
+    </div>
+
     <div class="app-container">
       <!-- Progress Stepper -->
       <div class="header">
@@ -262,6 +356,9 @@
         </p>
         <div style="display: flex; gap: 16px; margin: 24px 0;">
           <div
+            class="upload-box"
+            id="id-front-upload"
+            onclick="uploadID('front')"
             style="
               flex: 1;
               aspect-ratio: 0.7;
@@ -272,12 +369,18 @@
               flex-direction: column;
               align-items: center;
               justify-content: center;
+              overflow: hidden;
             "
           >
-            <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
-            <div style="font-size: 16px; color: #fff;">Scan Front</div>
+            <div id="id-front-content">
+              <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
+              <div style="font-size: 16px; color: #fff;">Scan Front</div>
+            </div>
           </div>
           <div
+            class="upload-box"
+            id="id-back-upload"
+            onclick="uploadID('back')"
             style="
               flex: 1;
               aspect-ratio: 0.7;
@@ -288,45 +391,453 @@
               flex-direction: column;
               align-items: center;
               justify-content: center;
+              overflow: hidden;
             "
           >
-            <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
-            <div style="font-size: 16px; color: #fff;">Scan Back</div>
+            <div id="id-back-content">
+              <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
+              <div style="font-size: 16px; color: #fff;">Scan Back</div>
+            </div>
           </div>
         </div>
         <p class="caption">
           Your ID is securely processed and only used for verification.
         </p>
-        <button class="button" onclick="goToScreen(5)">Continue</button>
+        <button
+          class="button"
+          onclick="uploadAndContinue()"
+          id="id-continue-btn"
+        >
+          Continue
+        </button>
+      </div>
+
+      <!-- Screen 4.5: Loading Screen - Processing ID -->
+      <div class="screen" id="screen-4-5">
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+          "
+        >
+          <div
+            class="loader"
+            style="width: 48px; height: 48px; border-width: 4px;"
+          ></div>
+          <p style="margin-top: 24px; text-align: center; color: #fff;">
+            Processing your Emirates ID...
+          </p>
+          <p style="margin-top: 8px; text-align: center; color: #b0b0b0;">
+            Verifying document authenticity
+          </p>
+        </div>
+      </div>
+
+      <!-- Screen 4.7: User Information Prefill -->
+      <div class="screen" id="screen-4-7">
+        <h2>Confirm Your Information</h2>
+        <p>
+          We've extracted your details from the Emirates ID. Please review and
+          confirm.
+        </p>
+
+        <div class="input-container" style="margin-bottom: 16px;">
+          <label
+            style="
+              display: block;
+              margin-bottom: 8px;
+              color: #b0b0b0;
+              font-size: 14px;
+            "
+            >Full Name (as per ID)</label
+          >
+          <input
+            type="text"
+            class="input"
+            id="user-fullname"
+            value="Ahmed Hassan Al Maktoum"
+          />
+        </div>
+
+        <div class="input-container" style="margin-bottom: 16px;">
+          <label
+            style="
+              display: block;
+              margin-bottom: 8px;
+              color: #b0b0b0;
+              font-size: 14px;
+            "
+            >Address Line 1</label
+          >
+          <input
+            type="text"
+            class="input"
+            id="user-address1"
+            value="123 Sheikh Zayed Road"
+          />
+        </div>
+
+        <div class="input-container" style="margin-bottom: 16px;">
+          <label
+            style="
+              display: block;
+              margin-bottom: 8px;
+              color: #b0b0b0;
+              font-size: 14px;
+            "
+            >Address Line 2 (Optional)</label
+          >
+          <input
+            type="text"
+            class="input"
+            id="user-address2"
+            placeholder="Apartment, Suite, etc."
+          />
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+          <div style="flex: 1;">
+            <label
+              style="
+                display: block;
+                margin-bottom: 8px;
+                color: #b0b0b0;
+                font-size: 14px;
+              "
+              >City</label
+            >
+            <input type="text" class="input" id="user-city" value="Dubai" />
+          </div>
+          <div style="flex: 1;">
+            <label
+              style="
+                display: block;
+                margin-bottom: 8px;
+                color: #b0b0b0;
+                font-size: 14px;
+              "
+              >Postal Code</label
+            >
+            <input type="text" class="input" id="user-postal" value="12345" />
+          </div>
+        </div>
+
+        <button class="button" onclick="goToScreen('4-8')">Continue</button>
+      </div>
+
+      <!-- Screen 4.8: Credit Score Permission -->
+      <div class="screen" id="screen-4-8">
+        <h2>Check Your Credit Score</h2>
+        <p>
+          We need your permission to fetch your credit history from Al Etihad
+          Credit Bureau (AECB) to assess your creditworthiness.
+        </p>
+
+        <div class="credit-card" style="margin: 24px 0;">
+          <div style="display: flex; align-items: start;">
+            <div style="font-size: 32px; margin-right: 16px;">📊</div>
+            <div>
+              <div
+                style="
+                  font-size: 16px;
+                  font-weight: 600;
+                  color: #fff;
+                  margin-bottom: 8px;
+                "
+              >
+                Why we need this
+              </div>
+              <div style="font-size: 14px; color: #b0b0b0; line-height: 20px;">
+                Your credit score helps us determine your credit limit and
+                repayment terms. This is a soft inquiry and won't affect your
+                credit score.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="credit-card"
+          style="
+            background: rgba(180, 233, 94, 0.05);
+            border: 1px solid #b4e95e;
+          "
+        >
+          <div style="display: flex; align-items: center; margin-bottom: 12px;">
+            <input
+              type="checkbox"
+              id="credit-consent"
+              style="width: 24px; height: 24px; margin-right: 12px;"
+            />
+            <label
+              for="credit-consent"
+              style="font-size: 16px; color: #fff; cursor: pointer;"
+            >
+              I consent to fetch my credit history from AECB
+            </label>
+          </div>
+          <div style="font-size: 13px; color: #b0b0b0; padding-left: 36px;">
+            Your data is secure and encrypted. Read our
+            <span
+              style="
+                color: #b4e95e;
+                text-decoration: underline;
+                cursor: pointer;
+              "
+              >Privacy Policy</span
+            >
+          </div>
+        </div>
+
+        <button
+          class="button"
+          onclick="fetchCreditScore()"
+          id="credit-permission-btn"
+          disabled
+        >
+          Check Credit Score
+        </button>
+      </div>
+
+      <!-- Screen 4.9: Loading Credit Score -->
+      <div class="screen" id="screen-4-9">
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+          "
+        >
+          <div
+            class="loader"
+            style="width: 48px; height: 48px; border-width: 4px;"
+          ></div>
+          <p style="margin-top: 24px; text-align: center; color: #fff;">
+            Fetching Credit Score...
+          </p>
+          <p style="margin-top: 8px; text-align: center; color: #b0b0b0;">
+            Connecting to Al Etihad Credit Bureau
+          </p>
+        </div>
+      </div>
+
+      <!-- Screen 4.10: Credit Score Display -->
+      <div class="screen" id="screen-4-10">
+        <h2>Your Credit Score</h2>
+        <p style="text-align: center;">
+          Based on your credit history with AECB
+        </p>
+
+        <div class="credit-card" style="text-align: center; margin: 24px 0;">
+          <div
+            style="
+              font-size: 64px;
+              font-weight: 700;
+              color: #b4e95e;
+              margin-bottom: 8px;
+            "
+            id="credit-score-display"
+          >
+            750
+          </div>
+          <div style="font-size: 16px; color: #b0b0b0; margin-bottom: 16px;">
+            Good
+          </div>
+          <div style="height: 1px; background: #3c3d28; margin: 16px 0;"></div>
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              font-size: 14px;
+            "
+          >
+            <div>
+              <div style="color: #b0b0b0;">Payment History</div>
+              <div style="color: #b4e95e; font-weight: 600;">95%</div>
+            </div>
+            <div>
+              <div style="color: #b0b0b0;">Utilization</div>
+              <div style="color: #b4e95e; font-weight: 600;">45%</div>
+            </div>
+            <div>
+              <div style="color: #b0b0b0;">Age</div>
+              <div style="color: #b4e95e; font-weight: 600;">7 yrs</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="button" onclick="goToScreen('5')">Continue</button>
       </div>
 
       <!-- Screen 5: Bank Linking -->
       <div class="screen" id="screen-5">
         <h2>Link Your Bank Account</h2>
-        <p>Connect your bank for secure auto-repayment.</p>
-        <div class="credit-card" style="margin-top: 16px;">
-          <div style="display: flex; align-items: center; margin-bottom: 12px;">
+        <p>Select your bank to connect for secure auto-repayment.</p>
+
+        <!-- Emirates NBD -->
+        <div
+          class="credit-card bank-option"
+          onclick="selectBank('ENBD', 'Emirates NBD')"
+          style="margin-top: 16px; cursor: pointer;"
+        >
+          <div style="display: flex; align-items: center;">
             <div
               style="
                 width: 48px;
                 height: 48px;
                 background: #173de3;
-                border-radius: 24px;
+                border-radius: 12px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 margin-right: 16px;
               "
             >
-              <span style="font-size: 24px; color: #fff;">E</span>
+              <span style="font-size: 20px; font-weight: bold; color: #fff;"
+                >E</span
+              >
             </div>
-            <div style="flex: 1; font-size: 16px; color: #fff;">
-              Emirates NBD
+            <div style="flex: 1;">
+              <div style="font-size: 16px; font-weight: 600; color: #fff;">
+                Emirates NBD
+              </div>
+              <div style="font-size: 13px; color: #b0b0b0;">
+                Most used in UAE
+              </div>
             </div>
-            <input type="checkbox" style="width: 24px; height: 24px;" />
+            <input
+              type="radio"
+              name="bank"
+              value="ENBD"
+              style="width: 20px; height: 20px;"
+            />
           </div>
         </div>
-        <div style="display: flex; align-items: start; margin: 16px 0;">
+
+        <!-- ADCB -->
+        <div
+          class="credit-card bank-option"
+          onclick="selectBank('ADCB', 'ADCB')"
+          style="cursor: pointer;"
+        >
+          <div style="display: flex; align-items: center;">
+            <div
+              style="
+                width: 48px;
+                height: 48px;
+                background: #0066cc;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 16px;
+              "
+            >
+              <span style="font-size: 20px; font-weight: bold; color: #fff;"
+                >A</span
+              >
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 16px; font-weight: 600; color: #fff;">
+                ADCB
+              </div>
+              <div style="font-size: 13px; color: #b0b0b0;">
+                Abu Dhabi Commercial Bank
+              </div>
+            </div>
+            <input
+              type="radio"
+              name="bank"
+              value="ADCB"
+              style="width: 20px; height: 20px;"
+            />
+          </div>
+        </div>
+
+        <!-- FAB -->
+        <div
+          class="credit-card bank-option"
+          onclick="selectBank('FAB', 'First Abu Dhabi Bank')"
+          style="cursor: pointer;"
+        >
+          <div style="display: flex; align-items: center;">
+            <div
+              style="
+                width: 48px;
+                height: 48px;
+                background: #b4e95e;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 16px;
+              "
+            >
+              <span style="font-size: 20px; font-weight: bold; color: #000;"
+                >F</span
+              >
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 16px; font-weight: 600; color: #fff;">
+                First Abu Dhabi Bank
+              </div>
+              <div style="font-size: 13px; color: #b0b0b0;">FAB</div>
+            </div>
+            <input
+              type="radio"
+              name="bank"
+              value="FAB"
+              style="width: 20px; height: 20px;"
+            />
+          </div>
+        </div>
+
+        <!-- Dubai Islamic Bank -->
+        <div
+          class="credit-card bank-option"
+          onclick="selectBank('DIB', 'Dubai Islamic Bank')"
+          style="cursor: pointer;"
+        >
+          <div style="display: flex; align-items: center;">
+            <div
+              style="
+                width: 48px;
+                height: 48px;
+                background: #ff6600;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 16px;
+              "
+            >
+              <span style="font-size: 20px; font-weight: bold; color: #fff;"
+                >D</span
+              >
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 16px; font-weight: 600; color: #fff;">
+                Dubai Islamic Bank
+              </div>
+              <div style="font-size: 13px; color: #b0b0b0;">
+                Shariah-compliant
+              </div>
+            </div>
+            <input
+              type="radio"
+              name="bank"
+              value="DIB"
+              style="width: 20px; height: 20px;"
+            />
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: start; margin: 24px 0;">
           <input
             type="checkbox"
             id="consent"
@@ -343,14 +854,103 @@
             >I consent to securely connect my bank to HalalX.</label
           >
         </div>
+
         <button
           class="button"
-          onclick="goToScreen(6)"
+          onclick="connectBank()"
           id="bank-connect-btn"
           disabled
         >
           Connect Bank
         </button>
+      </div>
+
+      <!-- Screen 5.5: Loading Bank Information -->
+      <div class="screen" id="screen-5-5">
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+          "
+        >
+          <div
+            class="loader"
+            style="width: 48px; height: 48px; border-width: 4px;"
+          ></div>
+          <p style="margin-top: 24px; text-align: center; color: #fff;">
+            Fetching Banking Information...
+          </p>
+          <p
+            style="margin-top: 8px; text-align: center; color: #b0b0b0;"
+            id="bank-loading-text"
+          >
+            Connecting to your bank
+          </p>
+        </div>
+      </div>
+
+      <!-- Screen 5.7: Underwriting in Progress -->
+      <div class="screen" id="screen-5-7">
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+          "
+        >
+          <div
+            class="loader"
+            style="width: 48px; height: 48px; border-width: 4px;"
+          ></div>
+          <p style="margin-top: 24px; text-align: center; color: #fff;">
+            Underwriting in Progress...
+          </p>
+          <p style="margin-top: 8px; text-align: center; color: #b0b0b0;">
+            Analyzing your financial profile
+          </p>
+          <div style="margin-top: 32px; max-width: 300px;">
+            <div
+              style="
+                background: rgba(255, 255, 255, 0.04);
+                border-radius: 12px;
+                padding: 16px;
+              "
+            >
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 12px;
+                "
+              >
+                <span style="color: #b0b0b0;">Credit Assessment</span>
+                <span style="color: #b4e95e;">✓</span>
+              </div>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 12px;
+                "
+              >
+                <span style="color: #b0b0b0;">Bank Verification</span>
+                <span style="color: #b4e95e;">✓</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span style="color: #b0b0b0;">Final Review</span>
+                <div
+                  class="loader"
+                  style="width: 16px; height: 16px; border-width: 2px;"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Screen 6: Credit Assessment -->
@@ -434,9 +1034,6 @@
           >
             Quick Actions
           </div>
-          <button class="button" onclick="alert('Make Purchase feature')">
-            Make Purchase
-          </button>
           <button
             class="button"
             style="
@@ -788,57 +1385,35 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 16px; margin-bottom: 24px;">
-          <div
-            style="
-              flex: 1;
-              aspect-ratio: 1.5;
-              background: rgba(255, 255, 255, 0.04);
-              border: 1px dashed #2c2e27;
-              border-radius: 16px;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              cursor: pointer;
-            "
-            onclick="document.getElementById('cheque-upload').click()"
-          >
+        <div
+          class="upload-box"
+          id="cheque-front-upload"
+          onclick="uploadCheque('front')"
+          style="
+            width: 100%;
+            aspect-ratio: 2;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px dashed #2c2e27;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            overflow: hidden;
+            margin-bottom: 24px;
+          "
+        >
+          <div id="cheque-front-content">
             <div style="font-size: 32px; margin-bottom: 8px;">📄</div>
             <div style="font-size: 14px; color: #fff; text-align: center;">
-              Upload Cheque Front
-            </div>
-          </div>
-          <div
-            style="
-              flex: 1;
-              aspect-ratio: 1.5;
-              background: rgba(255, 255, 255, 0.04);
-              border: 1px dashed #2c2e27;
-              border-radius: 16px;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              cursor: pointer;
-            "
-            onclick="document.getElementById('cheque-back-upload').click()"
-          >
-            <div style="font-size: 32px; margin-bottom: 8px;">📄</div>
-            <div style="font-size: 14px; color: #fff; text-align: center;">
-              Upload Cheque Back
+              Upload Cheque
             </div>
           </div>
         </div>
         <input
           type="file"
           id="cheque-upload"
-          style="display: none;"
-          accept="image/*"
-        />
-        <input
-          type="file"
-          id="cheque-back-upload"
           style="display: none;"
           accept="image/*"
         />
@@ -952,14 +1527,25 @@
         document.getElementById(`screen-${n}`).classList.add("active");
         currentScreen = n;
 
-        // Update stepper
-        document.querySelectorAll(".step").forEach((step, i) => {
-          if (i < Math.min(n, 4) && i < 4) {
-            step.classList.add("active");
-          } else {
-            step.classList.remove("active");
-          }
-        });
+        // Update stepper only for onboarding screens (1-5)
+        const header = document.querySelector(".header");
+        if (typeof n === "string" && n.includes("-")) {
+          // Hide stepper for intermediate screens
+          header?.classList.add("hidden");
+        } else if (n >= 6) {
+          // Hide stepper after onboarding completes
+          header?.classList.add("hidden");
+        } else {
+          // Show stepper for onboarding screens
+          header?.classList.remove("hidden");
+          document.querySelectorAll(".step").forEach((step, i) => {
+            if (i < Math.min(n, 4) && n >= 1 && n <= 4) {
+              step.classList.add("active");
+            } else {
+              step.classList.remove("active");
+            }
+          });
+        }
       }
 
       function sendOTP() {
@@ -985,10 +1571,100 @@
       });
 
       // Bank consent toggle
-      document.getElementById("consent").addEventListener("change", (e) => {
-        document.getElementById("bank-connect-btn").disabled = !e.target
-          .checked;
+      document.getElementById("consent")?.addEventListener("change", (e) => {
+        const bankBtn = document.getElementById("bank-connect-btn");
+        const bankSelected = document.querySelector(
+          'input[name="bank"]:checked'
+        );
+        bankBtn.disabled = !e.target.checked || !bankSelected;
       });
+
+      // Credit consent toggle
+      document
+        .getElementById("credit-consent")
+        ?.addEventListener("change", (e) => {
+          document.getElementById("credit-permission-btn").disabled = !e.target
+            .checked;
+        });
+
+      // Track uploaded IDs
+      let uploadedIDs = { front: false, back: false };
+
+      async function uploadAndContinue() {
+        if (!uploadedIDs.front || !uploadedIDs.back) {
+          alert("Please upload both sides of your Emirates ID");
+          return;
+        }
+
+        // Show loading screen
+        showLoader("Processing Emirates ID...");
+        setTimeout(() => {
+          hideLoader();
+          goToScreen("4-7"); // Go to prefill screen
+        }, 2000);
+      }
+
+      function selectBank(code, name) {
+        document.querySelectorAll('input[name="bank"]').forEach((radio) => {
+          radio.checked = radio.value === code;
+        });
+
+        const bankBtn = document.getElementById("bank-connect-btn");
+        const consent = document.getElementById("consent");
+        bankBtn.disabled = !consent.checked;
+      }
+
+      async function connectBank() {
+        const bankBtn = document.getElementById("bank-connect-btn");
+        bankBtn.disabled = true;
+
+        // Go to loading screen
+        goToScreen("5-5");
+
+        // Update loading text
+        setTimeout(() => {
+          document.getElementById("bank-loading-text").textContent =
+            "Verifying account details...";
+        }, 1000);
+
+        setTimeout(() => {
+          document.getElementById("bank-loading-text").textContent =
+            "Fetching transaction history...";
+        }, 2000);
+
+        // After fetching bank info, go to underwriting
+        setTimeout(() => {
+          goToScreen("5-7");
+
+          // After underwriting, go to credit assessment
+          setTimeout(() => {
+            goToScreen("6");
+          }, 3000);
+        }, 3000);
+      }
+
+      async function fetchCreditScore() {
+        goToScreen("4-9");
+
+        setTimeout(() => {
+          goToScreen("4-10");
+        }, 2500);
+      }
+
+      // Update upload function to track uploads
+      const originalUploadID = uploadID;
+      uploadID = async function (side) {
+        await originalUploadID(side);
+        uploadedIDs[side] = true;
+        checkIDComplete();
+      };
+
+      function checkIDComplete() {
+        const btn = document.getElementById("id-continue-btn");
+        if (uploadedIDs.front && uploadedIDs.back) {
+          btn.disabled = false;
+        }
+      }
 
       // Repayment flow
       let selectedPaymentMethod = "";
@@ -1139,6 +1815,179 @@
       document.getElementById("card-cvv")?.addEventListener("input", (e) => {
         e.target.value = e.target.value.replace(/\D/g, "");
       });
+
+      // Loading functions
+      function showLoader(text = "Processing...") {
+        document.getElementById("global-loader").classList.add("active");
+        document.getElementById("loading-text").textContent = text;
+      }
+
+      function hideLoader() {
+        document.getElementById("global-loader").classList.remove("active");
+      }
+
+      // Upload functions with dummy images
+      async function uploadID(side) {
+        showLoader(
+          "Uploading " + (side === "front" ? "Front" : "Back") + " Side..."
+        );
+
+        // Simulate upload delay
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        const uploadBox = document.getElementById("id-" + side + "-upload");
+        const content = document.getElementById("id-" + side + "-content");
+
+        // Create dummy image
+        const dummyImage = createDummyImage(
+          side === "front" ? "FRONT" : "BACK"
+        );
+        content.innerHTML = `<img src="${dummyImage}" class="uploaded-image" alt="Emirates ID ${side}">`;
+        uploadBox.classList.add("uploaded");
+
+        hideLoader();
+      }
+
+      async function uploadCheque(side) {
+        showLoader(
+          "Uploading Cheque " + (side === "front" ? "Front" : "Back") + "..."
+        );
+
+        // Simulate upload delay
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        const uploadBox = document.getElementById("cheque-" + side + "-upload");
+        const content = document.getElementById("cheque-" + side + "-content");
+
+        // Create dummy image
+        const dummyImage = createDummyImage("CHEQUE " + side.toUpperCase());
+        content.innerHTML = `<img src="${dummyImage}" class="uploaded-image" alt="Cheque ${side}">`;
+        uploadBox.classList.add("uploaded");
+
+        hideLoader();
+      }
+
+      function createDummyImage(text) {
+        // Create a canvas to generate a dummy image
+        const canvas = document.createElement("canvas");
+        canvas.width = 400;
+        canvas.height = 250;
+        const ctx = canvas.getContext("2d");
+
+        // Background
+        ctx.fillStyle = "#1a1a1a";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Border
+        ctx.strokeStyle = "#b4e95e";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
+        // Text
+        ctx.fillStyle = "#b4e95e";
+        ctx.font = "bold 32px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, canvas.width / 2, canvas.height / 2 - 20);
+
+        // Small text
+        ctx.font = "16px Arial";
+        ctx.fillStyle = "#b0b0b0";
+        ctx.fillText(
+          "Uploaded Successfully",
+          canvas.width / 2,
+          canvas.height / 2 + 20
+        );
+
+        return canvas.toDataURL();
+      }
+
+      // Add loading states to existing functions
+      const originalSendOTP = sendOTP;
+      sendOTP = async function () {
+        showLoader("Sending verification code...");
+        setTimeout(() => {
+          hideLoader();
+          originalSendOTP();
+        }, 1000);
+      };
+
+      const originalVerifyOTP = verifyOTP;
+      verifyOTP = async function () {
+        showLoader("Verifying code...");
+        setTimeout(() => {
+          hideLoader();
+          originalVerifyOTP();
+        }, 1000);
+      };
+
+      const originalProcessNetBanking = processNetBanking;
+      processNetBanking = async function () {
+        const btn = document.getElementById("netbanking-pay-btn");
+        const btnText = document.getElementById("netbanking-btn-text");
+
+        btn.disabled = true;
+        btnText.innerHTML = '<div class="loader"></div> Processing...';
+        showLoader("Processing bank login...");
+
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        btnText.textContent = "Proceed to Bank Login";
+        hideLoader();
+
+        showSuccess("netbanking");
+      };
+
+      const originalProcessDebitCard = processDebitCard;
+      processDebitCard = async function () {
+        const cardNumber = document.getElementById("card-number").value;
+        const cardExpiry = document.getElementById("card-expiry").value;
+        const cardCvv = document.getElementById("card-cvv").value;
+        const cardName = document.getElementById("card-name").value;
+
+        if (!cardNumber || !cardExpiry || !cardCvv || !cardName) {
+          alert("Please fill in all card details");
+          return;
+        }
+
+        const btn = document.getElementById("debit-pay-btn");
+        const btnText = document.getElementById("debit-btn-text");
+
+        btn.disabled = true;
+        btnText.innerHTML = '<div class="loader"></div> Processing Payment...';
+        showLoader("Processing payment...");
+
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
+        btnText.textContent = "Pay AED 40,000";
+        hideLoader();
+
+        showSuccess("debit");
+      };
+
+      const originalSubmitCheque = submitCheque;
+      submitCheque = async function () {
+        const chequeNumber = document.getElementById("cheque-number").value;
+        const chequeBank = document.getElementById("cheque-bank").value;
+
+        if (!chequeNumber || !chequeBank) {
+          alert("Please fill in cheque details");
+          return;
+        }
+
+        const btn = document.getElementById("cheque-submit-btn");
+
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loader"></div> Submitting...';
+        showLoader("Submitting cheque payment...");
+
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        btn.textContent = "Submit Cheque Payment";
+        hideLoader();
+
+        showSuccess("cheque");
+      };
     </script>
   </body>
 </html>
