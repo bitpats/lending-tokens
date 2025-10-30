@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HalalX Platform - Shariah-Compliant BNPL</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter",
+          "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif;
+        background: #000;
+        color: #fff;
+        overflow-x: hidden;
+      }
+      .app-container {
+        min-height: 100vh;
+        max-width: 414px;
+        margin: 0 auto;
+        background: #000;
+      }
+      .screen {
+        display: none;
+        padding: 64px 24px 24px;
+        min-height: 100vh;
+      }
+      .screen.active {
+        display: block;
+      }
+      .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #000;
+        z-index: 100;
+        padding: 24px;
+        max-width: 414px;
+        margin: 0 auto;
+      }
+      .stepper {
+        display: flex;
+        gap: 4px;
+        height: 4px;
+        background: #3c3d28;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .step {
+        flex: 1;
+        background: #666;
+        transition: background 0.3s;
+      }
+      .step.active {
+        background: #b4e95e;
+      }
+      h1 {
+        font-size: 36px;
+        line-height: 44px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: #fff;
+      }
+      h2 {
+        font-size: 28px;
+        line-height: 36px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #fff;
+      }
+      p {
+        font-size: 16px;
+        line-height: 24px;
+        color: #b0b0b0;
+        margin-bottom: 24px;
+      }
+      .button {
+        background: #173de3;
+        color: #fff;
+        padding: 16px 24px;
+        border-radius: 9999px;
+        border: none;
+        font-size: 17px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        margin-bottom: 12px;
+        transition: opacity 0.2s;
+      }
+      .button:hover {
+        opacity: 0.8;
+      }
+      .button:active {
+        opacity: 0.6;
+      }
+      .button:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      .input {
+        width: 100%;
+        height: 52px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid #2c2e27;
+        border-radius: 12px;
+        padding: 0 16px;
+        font-size: 16px;
+        color: #fff;
+        margin-bottom: 16px;
+      }
+      .input:focus {
+        outline: none;
+        border-color: #b4e95e;
+      }
+      .otp-container {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+      .otp-input {
+        width: 44px;
+        height: 52px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid #2c2e27;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 28px;
+        color: #fff;
+      }
+      .otp-input:focus {
+        outline: none;
+        border-color: #b4e95e;
+      }
+      .credit-card {
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 16px;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+      .progress-bar {
+        height: 8px;
+        background: #3c3d28;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 16px 0 8px;
+      }
+      .progress-fill {
+        height: 100%;
+        background: #b4e95e;
+        transition: width 0.3s;
+      }
+      .success-icon {
+        font-size: 64px;
+        color: #b4e95e;
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .caption {
+        font-size: 13px;
+        line-height: 18px;
+        color: #b0b0b0;
+        text-align: center;
+      }
+      .back-button {
+        position: fixed;
+        bottom: 24px;
+        left: 24px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid #2c2e27;
+        padding: 8px 16px;
+        border-radius: 8px;
+        color: #fff;
+        cursor: pointer;
+      }
+      .payment-method {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid #2c2e27;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .payment-method:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: #b4e95e;
+      }
+      .payment-method input[type="radio"]:checked + .payment-label {
+        border-color: #b4e95e;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Progress Stepper -->
+      <div class="header">
+        <div class="stepper" id="stepper">
+          <div class="step" data-step="1"></div>
+          <div class="step" data-step="2"></div>
+          <div class="step" data-step="3"></div>
+          <div class="step" data-step="4"></div>
+        </div>
+      </div>
+
+      <!-- Screen 1: Welcome -->
+      <div class="screen active" id="screen-1">
+        <h1>Welcome to HalalX</h1>
+        <p>
+          Access Shariah-compliant financing for your business purchases. Start
+          your verification to get approved in minutes.
+        </p>
+        <button class="button" onclick="goToScreen(2)">
+          Start Verification
+        </button>
+        <p class="caption">
+          We'll verify your identity securely with Emirates ID.
+        </p>
+      </div>
+
+      <!-- Screen 2: Phone Verification -->
+      <div class="screen" id="screen-2">
+        <h2>Verify Your Mobile Number</h2>
+        <p>We'll text a 6-digit code to your number.</p>
+        <input
+          type="tel"
+          class="input"
+          placeholder="+971 50 123 4567"
+          id="phone"
+        />
+        <button class="button" onclick="sendOTP()">Send Code</button>
+      </div>
+
+      <!-- Screen 3: OTP Entry -->
+      <div class="screen" id="screen-3">
+        <h2>Enter Verification Code</h2>
+        <p>We sent a code to your number</p>
+        <div class="otp-container">
+          <input type="text" class="otp-input" maxlength="1" id="otp-1" />
+          <input type="text" class="otp-input" maxlength="1" id="otp-2" />
+          <input type="text" class="otp-input" maxlength="1" id="otp-3" />
+          <input type="text" class="otp-input" maxlength="1" id="otp-4" />
+          <input type="text" class="otp-input" maxlength="1" id="otp-5" />
+          <input type="text" class="otp-input" maxlength="1" id="otp-6" />
+        </div>
+        <button class="button" onclick="verifyOTP()">Verify</button>
+      </div>
+
+      <!-- Screen 4: Emirates ID -->
+      <div class="screen" id="screen-4">
+        <h2>Scan Your Emirates ID</h2>
+        <p>
+          We need to verify your identity. Scan both sides of your Emirates ID.
+        </p>
+        <div style="display: flex; gap: 16px; margin: 24px 0;">
+          <div
+            style="
+              flex: 1;
+              aspect-ratio: 0.7;
+              background: rgba(255, 255, 255, 0.04);
+              border: 1px dashed #2c2e27;
+              border-radius: 16px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            "
+          >
+            <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
+            <div style="font-size: 16px; color: #fff;">Scan Front</div>
+          </div>
+          <div
+            style="
+              flex: 1;
+              aspect-ratio: 0.7;
+              background: rgba(255, 255, 255, 0.04);
+              border: 1px dashed #2c2e27;
+              border-radius: 16px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            "
+          >
+            <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
+            <div style="font-size: 16px; color: #fff;">Scan Back</div>
+          </div>
+        </div>
+        <p class="caption">
+          Your ID is securely processed and only used for verification.
+        </p>
+        <button class="button" onclick="goToScreen(5)">Continue</button>
+      </div>
+
+      <!-- Screen 5: Bank Linking -->
+      <div class="screen" id="screen-5">
+        <h2>Link Your Bank Account</h2>
+        <p>Connect your bank for secure auto-repayment.</p>
+        <div class="credit-card" style="margin-top: 16px;">
+          <div style="display: flex; align-items: center; margin-bottom: 12px;">
+            <div
+              style="
+                width: 48px;
+                height: 48px;
+                background: #173de3;
+                border-radius: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-right: 16px;
+              "
+            >
+              <span style="font-size: 24px; color: #fff;">E</span>
+            </div>
+            <div style="flex: 1; font-size: 16px; color: #fff;">
+              Emirates NBD
+            </div>
+            <input type="checkbox" style="width: 24px; height: 24px;" />
+          </div>
+        </div>
+        <div style="display: flex; align-items: start; margin: 16px 0;">
+          <input
+            type="checkbox"
+            id="consent"
+            style="
+              width: 24px;
+              height: 24px;
+              margin-right: 12px;
+              margin-top: 2px;
+            "
+          />
+          <label
+            for="consent"
+            style="font-size: 16px; color: #fff; line-height: 24px;"
+            >I consent to securely connect my bank to HalalX.</label
+          >
+        </div>
+        <button
+          class="button"
+          onclick="goToScreen(6)"
+          id="bank-connect-btn"
+          disabled
+        >
+          Connect Bank
+        </button>
+      </div>
+
+      <!-- Screen 6: Credit Assessment -->
+      <div class="screen" id="screen-6">
+        <div class="success-icon">✓</div>
+        <h1 style="text-align: center;">You're Approved!</h1>
+        <p style="text-align: center;">
+          Based on your business category (FMCG) and financial health, you have
+          been approved for a 30-day payment cycle.
+        </p>
+        <div class="credit-card">
+          <div class="info-row">
+            <span style="font-size: 16px; color: #b0b0b0;">Credit Limit</span>
+            <span style="font-size: 28px; font-weight: 600; color: #fff;"
+              >AED 75,000</span
+            >
+          </div>
+          <div style="height: 1px; background: #3c3d28; margin: 16px 0;"></div>
+          <div class="info-row">
+            <span style="font-size: 16px; color: #b0b0b0;">Payment Cycle</span>
+            <span style="font-size: 28px; font-weight: 600; color: #fff;"
+              >30 days</span
+            >
+          </div>
+        </div>
+        <button class="button" onclick="goToScreen(7)">
+          Continue to Dashboard
+        </button>
+      </div>
+
+      <!-- Screen 7: Dashboard -->
+      <div class="screen" id="screen-7">
+        <h2>Your Credit Overview</h2>
+        <div class="credit-card">
+          <div style="font-size: 16px; color: #b0b0b0; margin-bottom: 8px;">
+            Available Credit
+          </div>
+          <div
+            style="
+              font-size: 36px;
+              font-weight: 700;
+              color: #fff;
+              margin-bottom: 16px;
+            "
+          >
+            AED 75,000
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 47%;"></div>
+          </div>
+          <div style="font-size: 13px; color: #b0b0b0; margin-top: 8px;">
+            47.0% utilized
+          </div>
+        </div>
+        <div class="credit-card">
+          <div style="font-size: 16px; color: #b0b0b0; margin-bottom: 8px;">
+            Payment Cycle
+          </div>
+          <div
+            style="
+              font-size: 28px;
+              font-weight: 600;
+              color: #fff;
+              margin-bottom: 8px;
+            "
+          >
+            30 days
+          </div>
+          <div style="font-size: 16px; color: #b0b0b0;">
+            Repay within 30 days of purchase
+          </div>
+        </div>
+        <div style="margin: 24px 0;">
+          <div
+            style="
+              font-size: 16px;
+              color: #fff;
+              font-weight: 600;
+              margin-bottom: 16px;
+            "
+          >
+            Quick Actions
+          </div>
+          <button class="button" onclick="alert('Make Purchase feature')">
+            Make Purchase
+          </button>
+          <button
+            class="button"
+            style="
+              background: rgba(255, 255, 255, 0.08);
+              border: 1px solid #2c2e27;
+            "
+            onclick="goToScreen(8)"
+          >
+            Repay Now
+          </button>
+        </div>
+        <div>
+          <div
+            style="
+              font-size: 16px;
+              color: #fff;
+              font-weight: 600;
+              margin-bottom: 16px;
+            "
+          >
+            Recent Purchases
+          </div>
+          <div class="credit-card">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 8px;
+              "
+            >
+              <div>
+                <div style="font-size: 16px; font-weight: 600; color: #fff;">
+                  AED 15,000
+                </div>
+                <div style="font-size: 13px; color: #b0b0b0;">2024-01-15</div>
+              </div>
+              <div style="font-size: 16px; color: #b4e95e;">Due: 15,000</div>
+            </div>
+          </div>
+          <div class="credit-card">
+            <div style="display: flex; justify-content: space-between;">
+              <div>
+                <div style="font-size: 16px; font-weight: 600; color: #fff;">
+                  AED 25,000
+                </div>
+                <div style="font-size: 13px; color: #b0b0b0;">2024-01-10</div>
+              </div>
+              <div style="font-size: 16px; color: #b4e95e;">Due: 25,000</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screen 8: Repayment Selection -->
+      <div class="screen" id="screen-8">
+        <h2>Make Repayment</h2>
+        <p style="margin-bottom: 32px;">
+          Select a payment method to repay your outstanding balance.
+        </p>
+
+        <div class="credit-card">
+          <div class="info-row">
+            <span style="font-size: 16px; color: #b0b0b0;"
+              >Outstanding Balance</span
+            >
+            <span style="font-size: 28px; font-weight: 600; color: #fff;"
+              >AED 40,000</span
+            >
+          </div>
+          <div style="height: 1px; background: #3c3d28; margin: 16px 0;"></div>
+          <div class="info-row">
+            <span style="font-size: 16px; color: #b0b0b0;">Minimum Due</span>
+            <span style="font-size: 20px; font-weight: 600; color: #b4e95e;"
+              >AED 10,000</span
+            >
+          </div>
+        </div>
+
+        <div style="margin: 24px 0;">
+          <div
+            style="
+              font-size: 16px;
+              font-weight: 600;
+              color: #fff;
+              margin-bottom: 16px;
+            "
+          >
+            Choose Payment Method
+          </div>
+
+          <!-- Payment Method Options -->
+          <div
+            class="payment-method"
+            onclick="selectPaymentMethod('netbanking')"
+          >
+            <div style="display: flex; align-items: center;">
+              <div
+                style="
+                  width: 48px;
+                  height: 48px;
+                  background: #173de3;
+                  border-radius: 12px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin-right: 16px;
+                "
+              >
+                <span style="font-size: 24px;">🏦</span>
+              </div>
+              <div style="flex: 1;">
+                <div style="font-size: 16px; font-weight: 600; color: #fff;">
+                  Net Banking
+                </div>
+                <div style="font-size: 13px; color: #b0b0b0;">
+                  Pay from your linked bank account
+                </div>
+              </div>
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="netbanking"
+                style="width: 20px; height: 20px;"
+              />
+            </div>
+          </div>
+
+          <div class="payment-method" onclick="selectPaymentMethod('debit')">
+            <div style="display: flex; align-items: center;">
+              <div
+                style="
+                  width: 48px;
+                  height: 48px;
+                  background: rgba(180, 233, 94, 0.1);
+                  border-radius: 12px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin-right: 16px;
+                  border: 1px solid #b4e95e;
+                "
+              >
+                <span style="font-size: 24px;">💳</span>
+              </div>
+              <div style="flex: 1;">
+                <div style="font-size: 16px; font-weight: 600; color: #fff;">
+                  Debit Card
+                </div>
+                <div style="font-size: 13px; color: #b0b0b0;">
+                  Visa, Mastercard, Maestro
+                </div>
+              </div>
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="debit"
+                style="width: 20px; height: 20px;"
+              />
+            </div>
+          </div>
+
+          <div class="payment-method" onclick="selectPaymentMethod('cheque')">
+            <div style="display: flex; align-items: center;">
+              <div
+                style="
+                  width: 48px;
+                  height: 48px;
+                  background: rgba(255, 255, 255, 0.04);
+                  border-radius: 12px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin-right: 16px;
+                  border: 1px solid #2c2e27;
+                "
+              >
+                <span style="font-size: 24px;">📄</span>
+              </div>
+              <div style="flex: 1;">
+                <div style="font-size: 16px; font-weight: 600; color: #fff;">
+                  Cheque Payment
+                </div>
+                <div style="font-size: 13px; color: #b0b0b0;">
+                  Upload cheque or deliver to office
+                </div>
+              </div>
+              <input
+                type="radio"
+                name="paymentMethod"
+                value="cheque"
+                style="width: 20px; height: 20px;"
+              />
+            </div>
+          </div>
+        </div>
+
+        <input
+          type="number"
+          class="input"
+          placeholder="Enter amount"
+          id="repay-amount"
+          value="40000"
+        />
+
+        <button
+          class="button"
+          onclick="goToPayment()"
+          id="continue-payment-btn"
+        >
+          Continue to Payment
+        </button>
+        <button
+          class="button"
+          style="
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid #2c2e27;
+          "
+          onclick="goToScreen(7)"
+        >
+          Cancel
+        </button>
+      </div>
+
+      <!-- Screen 9: Net Banking Payment -->
+      <div class="screen" id="screen-9">
+        <h2>Net Banking Payment</h2>
+        <p>Complete payment through your bank account.</p>
+
+        <div class="credit-card">
+          <div class="info-row">
+            <span style="font-size: 16px; color: #b0b0b0;">Amount to Pay</span>
+            <span
+              style="font-size: 24px; font-weight: 600; color: #fff;"
+              id="netbanking-amount"
+              >AED 40,000</span
+            >
+          </div>
+          <div style="height: 1px; background: #3c3d28; margin: 16px 0;"></div>
+          <div class="info-row">
+            <span style="font-size: 16px; color: #b0b0b0;">Selected Bank</span>
+            <span style="font-size: 16px; font-weight: 600; color: #fff;"
+              >Emirates NBD</span
+            >
+          </div>
+        </div>
+
+        <button
+          class="button"
+          onclick="processNetBanking()"
+          id="netbanking-pay-btn"
+        >
+          <span id="netbanking-btn-text">Proceed to Bank Login</span>
+        </button>
+        <button
+          class="button"
+          style="
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid #2c2e27;
+          "
+          onclick="goToScreen(8)"
+        >
+          Change Payment Method
+        </button>
+      </div>
+
+      <!-- Screen 10: Debit Card Payment -->
+      <div class="screen" id="screen-10">
+        <h2>Debit Card Payment</h2>
+        <p>Enter your card details to complete payment.</p>
+
+        <input
+          type="text"
+          class="input"
+          placeholder="Card Number"
+          id="card-number"
+          maxlength="19"
+        />
+        <div style="display: flex; gap: 8px;">
+          <input
+            type="text"
+            class="input"
+            placeholder="MM/YY"
+            id="card-expiry"
+            maxlength="5"
+            style="flex: 1;"
+          />
+          <input
+            type="text"
+            class="input"
+            placeholder="CVV"
+            id="card-cvv"
+            maxlength="4"
+            style="flex: 1;"
+          />
+        </div>
+        <input
+          type="text"
+          class="input"
+          placeholder="Cardholder Name"
+          id="card-name"
+        />
+
+        <div
+          class="credit-card"
+          style="
+            background: rgba(180, 233, 94, 0.05);
+            border: 1px solid #b4e95e;
+          "
+        >
+          <div style="display: flex; align-items: center;">
+            <div style="font-size: 24px; margin-right: 12px;">🔒</div>
+            <div style="flex: 1;">
+              <div style="font-size: 14px; font-weight: 600; color: #b4e95e;">
+                Secure Payment
+              </div>
+              <div style="font-size: 12px; color: #b0b0b0;">
+                Your card details are encrypted and secure
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="button" onclick="processDebitCard()" id="debit-pay-btn">
+          <span id="debit-btn-text">Pay AED 40,000</span>
+        </button>
+        <button
+          class="button"
+          style="
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid #2c2e27;
+          "
+          onclick="goToScreen(8)"
+        >
+          Change Payment Method
+        </button>
+      </div>
+
+      <!-- Screen 11: Cheque Payment -->
+      <div class="screen" id="screen-11">
+        <h2>Cheque Payment</h2>
+        <p>Upload cheque details or schedule office visit.</p>
+
+        <div class="credit-card" style="margin-bottom: 24px;">
+          <div style="font-size: 16px; color: #b0b0b0; margin-bottom: 8px;">
+            Amount to Pay
+          </div>
+          <div style="font-size: 28px; font-weight: 600; color: #fff;">
+            AED 40,000
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 16px; margin-bottom: 24px;">
+          <div
+            style="
+              flex: 1;
+              aspect-ratio: 1.5;
+              background: rgba(255, 255, 255, 0.04);
+              border: 1px dashed #2c2e27;
+              border-radius: 16px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+            "
+            onclick="document.getElementById('cheque-upload').click()"
+          >
+            <div style="font-size: 32px; margin-bottom: 8px;">📄</div>
+            <div style="font-size: 14px; color: #fff; text-align: center;">
+              Upload Cheque Front
+            </div>
+          </div>
+          <div
+            style="
+              flex: 1;
+              aspect-ratio: 1.5;
+              background: rgba(255, 255, 255, 0.04);
+              border: 1px dashed #2c2e27;
+              border-radius: 16px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+            "
+            onclick="document.getElementById('cheque-back-upload').click()"
+          >
+            <div style="font-size: 32px; margin-bottom: 8px;">📄</div>
+            <div style="font-size: 14px; color: #fff; text-align: center;">
+              Upload Cheque Back
+            </div>
+          </div>
+        </div>
+        <input
+          type="file"
+          id="cheque-upload"
+          style="display: none;"
+          accept="image/*"
+        />
+        <input
+          type="file"
+          id="cheque-back-upload"
+          style="display: none;"
+          accept="image/*"
+        />
+
+        <input
+          type="text"
+          class="input"
+          placeholder="Cheque Number"
+          id="cheque-number"
+        />
+        <input
+          type="text"
+          class="input"
+          placeholder="Bank Name"
+          id="cheque-bank"
+        />
+
+        <div
+          style="
+            margin: 16px 0;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            border-left: 3px solid #b4e95e;
+          "
+        >
+          <div
+            style="
+              font-size: 14px;
+              font-weight: 600;
+              color: #fff;
+              margin-bottom: 4px;
+            "
+          >
+            📍 Or Visit Our Office
+          </div>
+          <div style="font-size: 13px; color: #b0b0b0;">
+            HalalX Financial Center, Business Bay, Dubai
+          </div>
+          <div style="font-size: 13px; color: #b0b0b0; margin-top: 4px;">
+            Mon-Fri: 9 AM - 6 PM
+          </div>
+        </div>
+
+        <button class="button" onclick="submitCheque()" id="cheque-submit-btn">
+          Submit Cheque Payment
+        </button>
+        <button
+          class="button"
+          style="
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid #2c2e27;
+          "
+          onclick="goToScreen(8)"
+        >
+          Change Payment Method
+        </button>
+      </div>
+
+      <!-- Screen 12: Payment Success -->
+      <div class="screen" id="screen-12">
+        <div class="success-icon">✓</div>
+        <h1 style="text-align: center;">Payment Successful!</h1>
+        <p style="text-align: center; margin-bottom: 32px;">
+          Your payment of <strong>AED 40,000</strong> has been processed
+          successfully.
+        </p>
+
+        <div class="credit-card">
+          <div class="info-row">
+            <span style="font-size: 16px; color: #b0b0b0;">Transaction ID</span>
+            <span
+              style="font-size: 14px; font-weight: 600; color: #fff;"
+              id="transaction-id"
+              >TXN-20241030-123456</span
+            >
+          </div>
+          <div style="height: 1px; background: #3c3d28; margin: 16px 0;"></div>
+          <div class="info-row">
+            <span style="font-size: 16px; color: #b0b0b0;">Payment Method</span>
+            <span
+              style="font-size: 14px; font-weight: 600; color: #fff;"
+              id="payment-method-display"
+              >Net Banking</span
+            >
+          </div>
+          <div style="height: 1px; background: #3c3d28; margin: 16px 0;"></div>
+          <div class="info-row">
+            <span style="font-size: 16px; color: #b0b0b0;">Date & Time</span>
+            <span
+              style="font-size: 14px; font-weight: 600; color: #fff;"
+              id="payment-date"
+              >30 Oct 2024, 1:23 PM</span
+            >
+          </div>
+        </div>
+
+        <button class="button" onclick="goToScreen(7)">
+          Back to Dashboard
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let currentScreen = 1;
+
+      function goToScreen(n) {
+        document
+          .querySelectorAll(".screen")
+          .forEach((s) => s.classList.remove("active"));
+        document.getElementById(`screen-${n}`).classList.add("active");
+        currentScreen = n;
+
+        // Update stepper
+        document.querySelectorAll(".step").forEach((step, i) => {
+          if (i < Math.min(n, 4) && i < 4) {
+            step.classList.add("active");
+          } else {
+            step.classList.remove("active");
+          }
+        });
+      }
+
+      function sendOTP() {
+        goToScreen(3);
+      }
+
+      function verifyOTP() {
+        goToScreen(4);
+      }
+
+      // OTP auto-focus
+      document.querySelectorAll(".otp-input").forEach((input, index) => {
+        input.addEventListener("input", (e) => {
+          if (e.target.value && index < 5) {
+            document.getElementById(`otp-${index + 2}`).focus();
+          }
+        });
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Backspace" && !e.target.value && index > 0) {
+            document.getElementById(`otp-${index}`).focus();
+          }
+        });
+      });
+
+      // Bank consent toggle
+      document.getElementById("consent").addEventListener("change", (e) => {
+        document.getElementById("bank-connect-btn").disabled = !e.target
+          .checked;
+      });
+
+      // Repayment flow
+      let selectedPaymentMethod = "";
+
+      function selectPaymentMethod(method) {
+        selectedPaymentMethod = method;
+        document
+          .querySelectorAll('input[name="paymentMethod"]')
+          .forEach((radio) => {
+            radio.checked = radio.value === method;
+          });
+      }
+
+      function goToPayment() {
+        const amount = document.getElementById("repay-amount").value;
+        if (!selectedPaymentMethod) {
+          alert("Please select a payment method");
+          return;
+        }
+
+        switch (selectedPaymentMethod) {
+          case "netbanking":
+            goToScreen(9);
+            break;
+          case "debit":
+            goToScreen(10);
+            break;
+          case "cheque":
+            goToScreen(11);
+            break;
+        }
+      }
+
+      async function processNetBanking() {
+        const btn = document.getElementById("netbanking-pay-btn");
+        const btnText = document.getElementById("netbanking-btn-text");
+
+        btn.disabled = true;
+        btnText.textContent = "Processing...";
+
+        // Simulate bank login processing
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        showSuccess("netbanking");
+      }
+
+      async function processDebitCard() {
+        const cardNumber = document.getElementById("card-number").value;
+        const cardExpiry = document.getElementById("card-expiry").value;
+        const cardCvv = document.getElementById("card-cvv").value;
+        const cardName = document.getElementById("card-name").value;
+
+        if (!cardNumber || !cardExpiry || !cardCvv || !cardName) {
+          alert("Please fill in all card details");
+          return;
+        }
+
+        const btn = document.getElementById("debit-pay-btn");
+        const btnText = document.getElementById("debit-btn-text");
+
+        btn.disabled = true;
+        btnText.textContent = "Processing Payment...";
+
+        // Simulate payment processing
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
+        showSuccess("debit");
+      }
+
+      async function submitCheque() {
+        const chequeNumber = document.getElementById("cheque-number").value;
+        const chequeBank = document.getElementById("cheque-bank").value;
+
+        if (!chequeNumber || !chequeBank) {
+          alert("Please fill in cheque details");
+          return;
+        }
+
+        const btn = document.getElementById("cheque-submit-btn");
+
+        btn.disabled = true;
+        btn.textContent = "Submitting...";
+
+        // Simulate submission
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        showSuccess("cheque");
+      }
+
+      function showSuccess(method) {
+        // Generate random transaction ID
+        const txnId =
+          "TXN-" +
+          new Date().getFullYear() +
+          String(new Date().getMonth() + 1).padStart(2, "0") +
+          String(new Date().getDate()).padStart(2, "0") +
+          "-" +
+          Math.floor(Math.random() * 1000000);
+
+        document.getElementById("transaction-id").textContent = txnId;
+
+        // Set payment method display
+        const methodNames = {
+          netbanking: "Net Banking",
+          debit: "Debit Card",
+          cheque: "Cheque Payment",
+        };
+        document.getElementById("payment-method-display").textContent =
+          methodNames[method];
+
+        // Set date and time
+        const now = new Date();
+        const dateStr = now.toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        const timeStr = now.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+        document.getElementById("payment-date").textContent =
+          dateStr + ", " + timeStr;
+
+        goToScreen(12);
+      }
+
+      // Card number formatting
+      document.getElementById("card-number")?.addEventListener("input", (e) => {
+        let value = e.target.value.replace(/\s/g, "");
+        let formattedValue = value.match(/.{1,4}/g)?.join(" ") || value;
+        if (formattedValue !== value) {
+          e.target.value = formattedValue;
+        }
+      });
+
+      // Expiry date formatting
+      document.getElementById("card-expiry")?.addEventListener("input", (e) => {
+        let value = e.target.value.replace(/\D/g, "");
+        if (value.length >= 2) {
+          value = value.substring(0, 2) + "/" + value.substring(2, 4);
+        }
+        e.target.value = value;
+      });
+
+      // CVV number only
+      document.getElementById("card-cvv")?.addEventListener("input", (e) => {
+        e.target.value = e.target.value.replace(/\D/g, "");
+      });
+    </script>
+  </body>
+</html>
